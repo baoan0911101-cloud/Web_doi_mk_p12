@@ -3,250 +3,535 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Đổi Mật Khẩu Chứng Chỉ .p12</title>
+<title>Đổi mật khẩu chứng chỉ .p12</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
-    --bg:#12151A;
-    --panel:#1A1E25;
-    --panel-2:#20242C;
-    --border:#2B313B;
-    --text:#E9EAEC;
-    --muted:#8890A0;
-    --gold:#C9A15A;
-    --gold-dim:#8C7136;
-    --err:#D9694F;
-    --ok:#7FA876;
+    --ink:#0B0D12;
+    --panel:#12151C;
+    --raised:#191D26;
+    --raised-2:#1F2430;
+    --line:#272C38;
+    --brass:#C9A15A;
+    --brass-soft:#8A7040;
+    --brass-glow:rgba(201,161,90,0.35);
+    --teal:#5FA0AC;
+    --mint:#63B587;
+    --coral:#DC6E56;
+    --paper:#EDEAE2;
+    --muted:#8891A3;
+    --muted-dim:#565D6D;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
+  html{color-scheme:dark;}
   body{
-    background:
-      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(201,161,90,0.08), transparent),
-      var(--bg);
-    color:var(--text);
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
     font-family:'Inter',sans-serif;
     min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:32px 16px;
     -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
   }
-  .wrap{width:100%;max-width:480px;}
 
+  /* ---------- background scene ---------- */
+  .scene{
+    position:fixed;inset:0;
+    z-index:0;
+    pointer-events:none;
+    background:
+      radial-gradient(720px 420px at 50% -6%, rgba(201,161,90,0.10), transparent 60%),
+      radial-gradient(560px 380px at 85% 90%, rgba(95,160,172,0.07), transparent 60%),
+      linear-gradient(var(--ink), var(--ink));
+  }
+  .scene::before{
+    content:'';
+    position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:radial-gradient(70% 60% at 50% 20%, #000 20%, transparent 85%);
+  }
+
+  .wrap{
+    position:relative;z-index:1;
+    max-width:520px;
+    margin:0 auto;
+    padding:56px 20px 60px;
+  }
+
+  /* ---------- entrance choreography ---------- */
+  .reveal{
+    opacity:0;
+    transform:translateY(14px);
+    animation:rise .7s cubic-bezier(.16,.8,.24,1) forwards;
+  }
+  @keyframes rise{to{opacity:1;transform:translateY(0);}}
+  .reveal.d1{animation-delay:.02s;}
+  .reveal.d2{animation-delay:.12s;}
+  .reveal.d3{animation-delay:.26s;}
+  .reveal.d4{animation-delay:.40s;}
+  .reveal.d5{animation-delay:.52s;}
+
+  /* ---------- header ---------- */
+  header{text-align:center;margin-bottom:34px;}
   .eyebrow{
-    font-family:'IBM Plex Mono',monospace;
+    font-family:'JetBrains Mono',monospace;
     font-size:11px;
-    letter-spacing:0.14em;
-    color:var(--gold-dim);
+    letter-spacing:.22em;
     text-transform:uppercase;
-    text-align:center;
-    margin-bottom:10px;
+    color:var(--teal);
+    display:inline-flex;align-items:center;gap:9px;
+    margin-bottom:18px;
+  }
+  .eyebrow::before,.eyebrow::after{
+    content:'';width:16px;height:1px;background:var(--teal);opacity:.5;
   }
   h1{
-    font-family:'Fraunces',serif;
-    font-weight:500;
-    font-size:28px;
-    text-align:center;
-    margin:0 0 6px;
+    font-family:'Instrument Serif',serif;
+    font-style:italic;
+    font-weight:400;
+    font-size:clamp(32px,7vw,46px);
+    line-height:1.08;
     letter-spacing:-0.01em;
+    margin:0 0 14px;
   }
+  h1 em{color:var(--brass);font-style:italic;}
   .sub{
-    text-align:center;
     color:var(--muted);
-    font-size:13.5px;
-    margin:0 0 32px;
-    line-height:1.5;
+    font-size:14.5px;
+    line-height:1.65;
+    max-width:380px;
+    margin:0 auto;
   }
 
-  /* Seal signature element */
-  .seal-row{display:flex;justify-content:center;margin-bottom:28px;}
-  .seal{
+  /* ---------- vault dial (signature element) ---------- */
+  .dial-stage{
+    display:flex;flex-direction:column;align-items:center;
+    margin:38px 0 30px;
+  }
+  .dial{
     position:relative;
-    width:76px;height:76px;
-    border-radius:50%;
-    border:1.5px solid var(--gold-dim);
+    width:168px;height:168px;
     display:flex;align-items:center;justify-content:center;
-    transition:all .6s cubic-bezier(.2,.8,.2,1);
   }
-  .seal::before{
-    content:'';
-    position:absolute;inset:6px;
+  .dial-glow{
+    position:absolute;inset:-30px;
     border-radius:50%;
-    border:1px dashed rgba(201,161,90,0.35);
+    background:radial-gradient(circle, var(--brass-glow), transparent 68%);
+    opacity:.35;
+    filter:blur(2px);
+    transition:opacity .6s ease, background .6s ease;
+    animation:breathe 3.6s ease-in-out infinite;
   }
-  .seal svg{width:30px;height:30px;stroke:var(--gold-dim);transition:stroke .6s;}
-  .seal.active{border-color:var(--gold);box-shadow:0 0 0 6px rgba(201,161,90,0.08);}
-  .seal.active svg{stroke:var(--gold);}
-  .seal.success{
-    border-color:var(--ok);
-    box-shadow:0 0 0 8px rgba(127,168,118,0.1);
-    transform:scale(1.04) rotate(-4deg);
+  @keyframes breathe{
+    0%,100%{transform:scale(1);opacity:.28;}
+    50%{transform:scale(1.08);opacity:.44;}
   }
-  .seal.success svg{stroke:var(--ok);}
+  .tick-ring{
+    position:absolute;inset:0;
+    animation:spinIdle 40s linear infinite;
+    transition:filter .4s ease;
+  }
+  .tick{
+    position:absolute;
+    top:50%;left:50%;
+    width:2px;height:9px;
+    background:var(--muted-dim);
+    border-radius:2px;
+    transform-origin:1px 76px;
+    transition:background .5s ease, height .3s ease;
+  }
+  .tick.major{height:13px;width:2.5px;background:var(--brass-soft);}
+  @keyframes spinIdle{to{transform:rotate(360deg);}}
 
+  .dial-track{
+    position:absolute;inset:14px;
+    border-radius:50%;
+    border:1px solid var(--line);
+  }
+  .dial-track::before{
+    content:'';
+    position:absolute;inset:-1px;
+    border-radius:50%;
+    border:1px solid transparent;
+    border-top-color:var(--brass);
+    opacity:0;
+    transition:opacity .4s ease;
+  }
+
+  .dial-core{
+    position:relative;
+    width:92px;height:92px;
+    border-radius:50%;
+    background:linear-gradient(160deg, var(--raised-2), var(--raised));
+    border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.35);
+    transition:border-color .5s ease, box-shadow .5s ease;
+  }
+  .dial-core svg{
+    width:30px;height:30px;
+    transition:transform .55s cubic-bezier(.34,1.56,.64,1), stroke .5s ease;
+    stroke:var(--muted-dim);
+    transform:rotate(0deg);
+  }
+
+  .dial-status{
+    margin-top:16px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    color:var(--muted-dim);
+    transition:color .4s ease;
+    text-align:center;
+    min-height:14px;
+  }
+
+  /* state: loaded (file selected) */
+  .dial[data-state="loaded"] .tick-ring{animation-duration:70s;filter:none;}
+  .dial[data-state="loaded"] .tick.major{background:var(--brass);}
+  .dial[data-state="loaded"] .dial-glow{opacity:.5;}
+  .dial[data-state="loaded"] .dial-core{border-color:var(--brass-soft);}
+  .dial[data-state="loaded"] .dial-core svg{stroke:var(--brass);}
+  .dial[data-state="loaded"] .dial-status{color:var(--brass);}
+
+  /* state: processing */
+  .dial[data-state="processing"] .tick-ring{animation:spinFast 1.1s linear infinite;}
+  @keyframes spinFast{to{transform:rotate(360deg);}}
+  .dial[data-state="processing"] .tick.major{background:var(--brass);}
+  .dial[data-state="processing"] .dial-track::before{
+    opacity:1;
+    animation:trackSpin 1.1s linear infinite;
+  }
+  @keyframes trackSpin{to{transform:rotate(360deg);}}
+  .dial[data-state="processing"] .dial-core svg{
+    stroke:var(--brass);
+    animation:pulseKey 1s ease-in-out infinite;
+  }
+  @keyframes pulseKey{0%,100%{transform:scale(1);}50%{transform:scale(.88) rotate(8deg);}}
+  .dial[data-state="processing"] .dial-status{color:var(--brass);}
+
+  /* state: success */
+  .dial[data-state="success"] .tick-ring{animation:spinIdle 40s linear infinite;filter:none;}
+  .dial[data-state="success"] .tick{background:var(--mint);}
+  .dial[data-state="success"] .dial-glow{
+    background:radial-gradient(circle, rgba(99,181,135,0.4), transparent 68%);
+    opacity:.55;
+    animation:breathe 3.6s ease-in-out infinite;
+  }
+  .dial[data-state="success"] .dial-core{
+    border-color:var(--mint);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.04), 0 0 0 8px rgba(99,181,135,0.08), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  .dial[data-state="success"] .dial-core svg{
+    stroke:var(--mint);
+    transform:rotate(98deg);
+  }
+  .dial[data-state="success"] .dial-status{color:var(--mint);}
+
+  /* state: error */
+  .dial[data-state="error"] .dial-core{border-color:var(--coral);animation:shake .5s ease;}
+  .dial[data-state="error"] .dial-core svg{stroke:var(--coral);}
+  .dial[data-state="error"] .dial-status{color:var(--coral);}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-6px);}
+    40%{transform:translateX(5px);}
+    60%{transform:translateX(-4px);}
+    80%{transform:translateX(3px);}
+  }
+
+  /* success particles */
+  .particle{
+    position:absolute;top:50%;left:50%;
+    width:4px;height:4px;border-radius:50%;
+    background:var(--mint);
+    opacity:0;
+    pointer-events:none;
+  }
+  .particle.go{animation:burst .85s cubic-bezier(.16,.8,.24,1) forwards;}
+  @keyframes burst{
+    0%{opacity:1;transform:translate(-50%,-50%) translate(0,0) scale(1);}
+    100%{opacity:0;transform:translate(-50%,-50%) translate(var(--px),var(--py)) scale(.3);}
+  }
+
+  /* ---------- step rail ---------- */
+  .steps{
+    display:flex;align-items:center;justify-content:center;
+    gap:0;
+    margin-bottom:26px;
+  }
+  .step{
+    display:flex;align-items:center;gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px;
+    color:var(--muted-dim);
+    transition:color .4s ease;
+  }
+  .step .num{
+    width:22px;height:22px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:10px;
+    transition:border-color .4s ease, color .4s ease, background .4s ease;
+  }
+  .step.active{color:var(--paper);}
+  .step.active .num{border-color:var(--brass);color:var(--brass);}
+  .step.done{color:var(--mint);}
+  .step.done .num{border-color:var(--mint);background:rgba(99,181,135,0.1);color:var(--mint);}
+  .rail{
+    width:38px;height:1px;
+    background:var(--line);
+    margin:0 8px;
+    position:relative;
+    overflow:hidden;
+  }
+  .rail-fill{
+    position:absolute;inset:0;
+    width:0%;
+    background:var(--brass);
+    transition:width .5s cubic-bezier(.4,0,.2,1);
+  }
+  .rail-fill.done{background:var(--mint);width:100%;}
+
+  /* ---------- card ---------- */
   .card{
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:28px 26px;
+    background:linear-gradient(180deg, var(--panel), var(--raised) 130%);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px 24px;
+    box-shadow:0 20px 60px -20px rgba(0,0,0,0.6);
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:'';
+    position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
   }
 
+  .panel{animation:panelIn .5s cubic-bezier(.16,.8,.24,1);}
+  @keyframes panelIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---------- dropzone ---------- */
   .dropzone{
-    border:1.5px dashed var(--border);
-    border-radius:10px;
-    padding:28px 16px;
+    border:1.5px dashed var(--line);
+    border-radius:14px;
+    padding:38px 18px;
     text-align:center;
     cursor:pointer;
-    transition:border-color .2s, background .2s;
+    position:relative;
+    transition:border-color .25s ease, background .25s ease, transform .2s ease;
   }
   .dropzone:hover, .dropzone.drag{
-    border-color:var(--gold-dim);
-    background:rgba(201,161,90,0.04);
+    border-color:var(--brass-soft);
+    background:rgba(201,161,90,0.045);
   }
+  .dropzone.drag{transform:scale(1.01);}
   .dropzone input{display:none;}
-  .dz-icon{color:var(--muted);margin-bottom:10px;}
-  .dz-text{font-size:14px;color:var(--text);}
-  .dz-sub{font-size:12px;color:var(--muted);margin-top:4px;font-family:'IBM Plex Mono',monospace;}
-
-  .file-chip{
-    display:flex;align-items:center;gap:10px;
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-radius:10px;
-    padding:12px 14px;
-    margin-bottom:20px;
+  .dz-icon{
+    width:44px;height:44px;
+    margin:0 auto 14px;
+    border-radius:50%;
+    border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);
+    animation:floaty 3.2s ease-in-out infinite;
   }
-  .file-chip svg{flex:none;color:var(--gold);width:18px;height:18px;}
+  @keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+  .dropzone:hover .dz-icon{color:var(--brass);border-color:var(--brass-soft);}
+  .dz-text{font-size:14.5px;color:var(--paper);font-weight:500;}
+  .dz-sub{font-size:11.5px;color:var(--muted-dim);margin-top:5px;font-family:'JetBrains Mono',monospace;letter-spacing:.04em;}
+
+  /* ---------- file chip ---------- */
+  .file-chip{
+    display:flex;align-items:center;gap:11px;
+    background:var(--raised-2);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:13px 14px;
+    margin-bottom:22px;
+    animation:panelIn .4s cubic-bezier(.16,.8,.24,1);
+  }
+  .file-chip .ic{
+    flex:none;width:30px;height:30px;border-radius:8px;
+    background:rgba(201,161,90,0.12);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--brass);
+  }
   .file-chip .name{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:12.5px;
-    color:var(--text);
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    flex:1;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;color:var(--paper);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;
   }
   .file-chip button{
     background:none;border:none;color:var(--muted);cursor:pointer;
-    font-size:12px;font-family:'Inter',sans-serif;
-    padding:2px 6px;
+    font-size:11.5px;font-family:'Inter',sans-serif;padding:5px 8px;
+    border-radius:6px;transition:color .2s, background .2s;
   }
-  .file-chip button:hover{color:var(--text);}
+  .file-chip button:hover{color:var(--paper);background:rgba(255,255,255,0.04);}
 
-  .field{margin-bottom:16px;}
-  label{
+  /* ---------- fields ---------- */
+  .field{margin-bottom:18px;position:relative;}
+  .field label{
     display:block;
-    font-size:12px;
+    font-size:11.5px;
     color:var(--muted);
-    margin-bottom:7px;
-    font-family:'IBM Plex Mono',monospace;
-    letter-spacing:0.02em;
+    margin-bottom:8px;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:.03em;
+    transition:color .25s ease;
   }
+  .field.focus label{color:var(--brass);}
   .pw-input{position:relative;}
-  input[type="password"], input[type="text"]{
+  .pw-input input{
     width:100%;
-    background:var(--panel-2);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:12px 42px 12px 13px;
-    color:var(--text);
+    background:var(--raised-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:13px 44px 13px 14px;
+    color:var(--paper);
     font-size:14.5px;
-    font-family:'IBM Plex Mono',monospace;
+    font-family:'JetBrains Mono',monospace;
     outline:none;
-    transition:border-color .15s;
+    transition:border-color .25s ease, box-shadow .25s ease;
   }
-  input:focus{border-color:var(--gold-dim);}
+  .pw-input input:focus{
+    border-color:var(--brass-soft);
+    box-shadow:0 0 0 3px rgba(201,161,90,0.10);
+  }
   .toggle-eye{
-    position:absolute;right:10px;top:50%;transform:translateY(-50%);
-    background:none;border:none;cursor:pointer;color:var(--muted);
-    padding:4px;display:flex;
+    position:absolute;right:9px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;color:var(--muted-dim);
+    padding:6px;display:flex;border-radius:6px;
+    transition:color .2s ease;
   }
-  .toggle-eye:hover{color:var(--text);}
+  .toggle-eye:hover{color:var(--paper);}
 
-  .divider{
-    border:none;border-top:1px solid var(--border);
-    margin:22px 0;
-  }
+  .divider{border:none;border-top:1px solid var(--line);margin:22px 0;}
 
+  /* ---------- buttons ---------- */
   .btn{
     width:100%;
-    background:var(--gold);
-    color:#1A1408;
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(135deg, var(--brass), #B08A45);
+    color:#191307;
     border:none;
-    border-radius:8px;
-    padding:13px;
+    border-radius:11px;
+    padding:14px;
     font-size:14px;
     font-weight:600;
     font-family:'Inter',sans-serif;
     cursor:pointer;
-    transition:filter .15s, transform .1s;
+    transition:filter .15s ease, transform .1s ease;
   }
-  .btn:hover:not(:disabled){filter:brightness(1.08);}
-  .btn:active:not(:disabled){transform:scale(0.99);}
+  .btn::before{
+    content:'';
+    position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(115deg, transparent, rgba(255,255,255,0.5), transparent);
+    transform:skewX(-20deg);
+    transition:left .6s ease;
+  }
+  .btn:hover:not(:disabled)::before{left:130%;}
+  .btn:hover:not(:disabled){filter:brightness(1.05);}
+  .btn:active:not(:disabled){transform:scale(.985);}
   .btn:disabled{
-    background:var(--panel-2);
-    color:var(--muted);
+    background:var(--raised-2);
+    color:var(--muted-dim);
     cursor:not-allowed;
-    border:1px solid var(--border);
+    border:1px solid var(--line);
   }
 
+  .btn-back{
+    width:100%;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--muted);
+    border-radius:11px;
+    padding:13px;
+    font-size:13.5px;
+    font-weight:500;
+    font-family:'Inter',sans-serif;
+    cursor:pointer;
+    margin-top:12px;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .btn-back:hover{border-color:var(--brass-soft);color:var(--paper);}
+
+  /* ---------- messages ---------- */
   .msg{
     margin-top:16px;
     padding:12px 14px;
-    border-radius:8px;
+    border-radius:10px;
     font-size:13px;
-    line-height:1.5;
+    line-height:1.55;
     display:none;
   }
-  .msg.show{display:block;}
-  .msg.err{background:rgba(217,105,79,0.1);border:1px solid rgba(217,105,79,0.3);color:#E8998A;}
-  .msg.ok{background:rgba(127,168,118,0.1);border:1px solid rgba(127,168,118,0.3);color:#9FC296;}
+  .msg.show{display:block;animation:panelIn .35s ease;}
+  .msg.err{background:rgba(220,110,86,0.09);border:1px solid rgba(220,110,86,0.28);color:#EFA492;}
 
-  .result{display:none;margin-top:16px;}
-  .result.show{display:block;}
+  /* ---------- result panel ---------- */
   .result-card{
-    background:var(--panel-2);
-    border:1px solid rgba(127,168,118,0.3);
-    border-radius:10px;
-    padding:16px;
+    background:var(--raised-2);
+    border:1px solid rgba(99,181,135,0.3);
+    border-radius:14px;
+    padding:22px;
     text-align:center;
   }
-  .result-card .name{
-    font-family:'IBM Plex Mono',monospace;
-    font-size:13px;color:var(--ok);
+  .result-card .ok-tag{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--mint);
     margin-bottom:12px;
   }
+  .result-card .ok-tag svg{width:13px;height:13px;}
+  .result-card .name{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13.5px;color:var(--paper);
+    margin-bottom:18px;
+  }
   .dl-btn{
-    display:inline-flex;align-items:center;gap:8px;
-    background:transparent;
-    border:1px solid var(--ok);
-    color:var(--ok);
-    padding:10px 20px;
-    border-radius:8px;
+    display:inline-flex;align-items:center;gap:9px;
+    background:linear-gradient(135deg, var(--mint), #4E9C6F);
+    border:none;
+    color:#0C1A12;
+    padding:12px 24px;
+    border-radius:10px;
     font-size:13.5px;
     font-weight:600;
     cursor:pointer;
     text-decoration:none;
+    transition:filter .15s ease, transform .1s ease;
   }
-  .dl-btn:hover{background:rgba(127,168,118,0.08);}
+  .dl-btn:hover{filter:brightness(1.06);}
+  .dl-btn:active{transform:scale(.98);}
+  .dl-btn svg{animation:dlbounce 1.8s ease-in-out infinite;}
+  @keyframes dlbounce{0%,100%{transform:translateY(0);}50%{transform:translateY(2px);}}
 
-  .foot-note{
-    text-align:center;
+  .again{
+    display:block;text-align:center;
+    margin-top:16px;
+    font-size:12.5px;
     color:var(--muted);
-    font-size:11.5px;
-    margin-top:22px;
-    line-height:1.6;
-    font-family:'IBM Plex Mono',monospace;
+    background:none;border:none;cursor:pointer;
+    width:100%;
+    font-family:'Inter',sans-serif;
   }
-  .foot-note b{color:var(--muted);}
+  .again:hover{color:var(--paper);}
 
   .spinner{
     width:15px;height:15px;
     border:2px solid rgba(0,0,0,0.2);
-    border-top-color:#1A1408;
+    border-top-color:#191307;
     border-radius:50%;
     display:inline-block;
     vertical-align:-3px;
@@ -255,55 +540,97 @@
   }
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  @media (prefers-reduced-motion: reduce){
-    .seal, .spinner{transition:none;animation:none;}
+  .foot-note{
+    text-align:center;
+    color:var(--muted-dim);
+    font-size:11.5px;
+    margin-top:26px;
+    line-height:1.7;
+    font-family:'JetBrains Mono',monospace;
   }
+  .foot-note b{color:var(--muted);}
+
+  [hidden]{display:none !important;}
+
+  @media (max-width:420px){
+    .wrap{padding:40px 14px 40px;}
+    .card{padding:22px 18px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+  }
+
+  :focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <div class="eyebrow">Công cụ chứng chỉ số</div>
-  <h1>Đổi mật khẩu file .p12</h1>
-  <p class="sub">Xử lý toàn bộ ngay trên trình duyệt của bạn.<br>File chứng chỉ không được tải lên bất kỳ máy chủ nào.</p>
+<div class="scene"></div>
 
-  <div class="seal-row">
-    <div class="seal" id="seal">
-      <svg id="sealIcon" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="4" y="10" width="16" height="10" rx="1.5"></rect>
-        <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
-      </svg>
+<div class="wrap">
+
+  <header class="reveal d1">
+    <div class="eyebrow">PKCS#12 · Tiện ích cục bộ</div>
+    <h1>Đổi <em>khoá</em> cho<br>chứng chỉ số</h1>
+    <p class="sub">Mở và đóng gói lại tệp <code>.p12</code> ngay trên trình duyệt của bạn — không tệp nào rời khỏi máy.</p>
+  </header>
+
+  <div class="dial-stage reveal d2">
+    <div class="dial" id="dial" data-state="idle">
+      <div class="dial-glow"></div>
+      <div class="tick-ring" id="tickRing"></div>
+      <div class="dial-track"></div>
+      <div class="dial-core">
+        <svg id="dialIcon" viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8.2" r="3.4"></circle>
+          <path d="M12 11.6 L12 19.5"></path>
+          <path d="M9.2 16.5 L14.8 16.5"></path>
+          <path d="M9.8 18.8 L14.2 18.8"></path>
+        </svg>
+      </div>
     </div>
+    <div class="dial-status" id="dialStatus">Chưa có tệp</div>
   </div>
 
-  <div class="card">
+  <nav class="steps reveal d3">
+    <div class="step active" data-step="1"><span class="num">1</span>Tệp</div>
+    <div class="rail"><div class="rail-fill" id="rail1"></div></div>
+    <div class="step" data-step="2"><span class="num">2</span>Mật khẩu</div>
+    <div class="rail"><div class="rail-fill" id="rail2"></div></div>
+    <div class="step" data-step="3"><span class="num">3</span>Hoàn tất</div>
+  </nav>
 
-    <div id="dropStage">
+  <div class="card reveal d4">
+
+    <section class="panel" id="panel1" data-panel="1">
       <div class="dropzone" id="dropzone">
         <input type="file" id="fileInput" accept=".p12,.pfx">
         <div class="dz-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
         </div>
-        <div class="dz-text">Kéo thả file vào đây, hoặc bấm để chọn</div>
-        <div class="dz-sub">.p12 / .pfx</div>
+        <div class="dz-text">Kéo thả tệp vào đây, hoặc bấm để chọn</div>
+        <div class="dz-sub">.P12 · .PFX</div>
       </div>
-    </div>
+    </section>
 
-    <div id="formStage" style="display:none;">
+    <section class="panel" id="panel2" data-panel="2" hidden>
       <div class="file-chip">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
+        <div class="ic">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+          </svg>
+        </div>
         <span class="name" id="fileName"></span>
-        <button id="clearFile">Đổi file</button>
+        <button type="button" id="clearFile">Đổi tệp</button>
       </div>
 
-      <div class="field">
+      <div class="field" data-field>
         <label for="oldPass">Mật khẩu hiện tại</label>
         <div class="pw-input">
           <input type="password" id="oldPass" autocomplete="off">
@@ -315,7 +642,7 @@
 
       <hr class="divider">
 
-      <div class="field">
+      <div class="field" data-field>
         <label for="newPass">Mật khẩu mới</label>
         <div class="pw-input">
           <input type="password" id="newPass" autocomplete="off">
@@ -325,7 +652,7 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field" data-field>
         <label for="confirmPass">Xác nhận mật khẩu mới</label>
         <div class="pw-input">
           <input type="password" id="confirmPass" autocomplete="off">
@@ -336,39 +663,80 @@
       </div>
 
       <button class="btn" id="submitBtn">Đổi mật khẩu</button>
-
       <div class="msg" id="msg"></div>
+    </section>
 
-      <div class="result" id="result">
-        <div class="result-card">
-          <div class="name" id="resultName">cer_new.zip</div>
-          <a class="dl-btn" id="downloadBtn" download>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Tải file .zip
-          </a>
+    <section class="panel" id="panel3" data-panel="3" hidden>
+      <div class="result-card">
+        <div class="ok-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Đã đổi mật khẩu
         </div>
+        <div class="name" id="resultName">cer_new.zip</div>
+        <a class="dl-btn" id="downloadBtn" download>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Tải file .zip
+        </a>
       </div>
-    </div>
+      <button type="button" class="again" id="startOver">Đổi mật khẩu cho tệp khác</button>
+    </section>
 
   </div>
 
-  <p class="foot-note"><b>Lưu ý:</b> mật khẩu và file chỉ tồn tại trong bộ nhớ trình duyệt của bạn trong phiên làm việc này, không được gửi đi bất kỳ đâu.</p>
+  <p class="foot-note reveal d5"><b>Cục bộ &amp; riêng tư —</b> tệp và mật khẩu chỉ tồn tại trong bộ nhớ trình duyệt của phiên này.</p>
 </div>
 
 <script>
+/* ---------- build tick ring ---------- */
+const tickRing = document.getElementById('tickRing');
+const TICKS = 36;
+for(let i=0;i<TICKS;i++){
+  const t = document.createElement('div');
+  t.className = 'tick' + (i % 3 === 0 ? ' major' : '');
+  t.style.transform = `rotate(${i * (360/TICKS)}deg)`;
+  tickRing.appendChild(t);
+}
+
+/* ---------- state ---------- */
 let selectedFile = null;
 let outputBlob = null;
 
+const dial = document.getElementById('dial');
+const dialStatus = document.getElementById('dialStatus');
+const steps = document.querySelectorAll('.step');
+const rail1 = document.getElementById('rail1');
+const rail2 = document.getElementById('rail2');
+
+const panel1 = document.getElementById('panel1');
+const panel2 = document.getElementById('panel2');
+const panel3 = document.getElementById('panel3');
+
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
-const dropStage = document.getElementById('dropStage');
-const formStage = document.getElementById('formStage');
 const fileNameEl = document.getElementById('fileName');
-const seal = document.getElementById('seal');
 const msgEl = document.getElementById('msg');
-const resultEl = document.getElementById('result');
 const submitBtn = document.getElementById('submitBtn');
 
+function setDial(state, statusText){
+  dial.dataset.state = state;
+  dialStatus.textContent = statusText;
+}
+
+function goToStep(n){
+  steps.forEach(s => {
+    const sn = Number(s.dataset.step);
+    s.classList.toggle('active', sn === n);
+    s.classList.toggle('done', sn < n);
+  });
+  rail1.classList.toggle('done', n > 1);
+  rail2.classList.toggle('done', n > 2);
+  if(n < 2) rail1.style.width='';
+  panel1.hidden = n !== 1;
+  panel2.hidden = n !== 2;
+  panel3.hidden = n !== 3;
+}
+
+/* ---------- dropzone ---------- */
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
@@ -384,9 +752,8 @@ fileInput.addEventListener('change', e => {
 function handleFile(file){
   selectedFile = file;
   fileNameEl.textContent = file.name;
-  dropStage.style.display = 'none';
-  formStage.style.display = 'block';
-  seal.classList.add('active');
+  goToStep(2);
+  setDial('loaded', file.name);
   resetMessages();
 }
 
@@ -394,15 +761,26 @@ document.getElementById('clearFile').addEventListener('click', () => {
   selectedFile = null;
   outputBlob = null;
   fileInput.value = '';
-  dropStage.style.display = 'block';
-  formStage.style.display = 'none';
-  seal.classList.remove('active','success');
+  goToStep(1);
+  setDial('idle', 'Chưa có tệp');
   document.getElementById('oldPass').value='';
   document.getElementById('newPass').value='';
   document.getElementById('confirmPass').value='';
   resetMessages();
 });
 
+document.getElementById('startOver').addEventListener('click', () => {
+  document.getElementById('clearFile').click();
+});
+
+/* ---------- field focus micro-interaction ---------- */
+document.querySelectorAll('.pw-input input').forEach(inp=>{
+  const field = inp.closest('[data-field]');
+  inp.addEventListener('focus', ()=> field && field.classList.add('focus'));
+  inp.addEventListener('blur', ()=> field && field.classList.remove('focus'));
+});
+
+/* ---------- eye toggle ---------- */
 document.querySelectorAll('.toggle-eye').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     const t = document.getElementById(btn.dataset.target);
@@ -413,46 +791,45 @@ document.querySelectorAll('.toggle-eye').forEach(btn=>{
 function resetMessages(){
   msgEl.className = 'msg';
   msgEl.textContent = '';
-  resultEl.classList.remove('show');
 }
-
 function showError(text){
   msgEl.className = 'msg err show';
   msgEl.textContent = text;
-  resultEl.classList.remove('show');
 }
 
-function showOk(text){
-  msgEl.className = 'msg ok show';
-  msgEl.textContent = text;
+/* ---------- particle burst on success ---------- */
+function burstParticles(){
+  const core = document.querySelector('.dial-core');
+  for(let i=0;i<14;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 60 + Math.random()*40;
+    p.style.setProperty('--px', Math.cos(angle)*dist + 'px');
+    p.style.setProperty('--py', Math.sin(angle)*dist + 'px');
+    p.style.background = Math.random() > 0.4 ? 'var(--mint)' : 'var(--brass)';
+    dial.appendChild(p);
+    requestAnimationFrame(()=> p.classList.add('go'));
+    setTimeout(()=> p.remove(), 1000);
+  }
 }
 
+/* ---------- submit ---------- */
 submitBtn.addEventListener('click', async () => {
   resetMessages();
 
-  if (!selectedFile){
-    showError('Vui lòng chọn file .p12 trước.');
-    return;
-  }
+  if (!selectedFile){ showError('Vui lòng chọn tệp .p12 trước.'); return; }
   const oldPass = document.getElementById('oldPass').value;
   const newPass = document.getElementById('newPass').value;
   const confirmPass = document.getElementById('confirmPass').value;
 
-  if (!oldPass){
-    showError('Vui lòng nhập mật khẩu hiện tại.');
-    return;
-  }
-  if (!newPass){
-    showError('Vui lòng nhập mật khẩu mới.');
-    return;
-  }
-  if (newPass !== confirmPass){
-    showError('Mật khẩu xác nhận không khớp. Vui lòng nhập lại.');
-    return;
-  }
+  if (!oldPass){ showError('Vui lòng nhập mật khẩu hiện tại.'); return; }
+  if (!newPass){ showError('Vui lòng nhập mật khẩu mới.'); return; }
+  if (newPass !== confirmPass){ showError('Mật khẩu xác nhận không khớp. Vui lòng nhập lại.'); return; }
 
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner"></span>Đang xử lý...';
+  setDial('processing', 'Đang đổi mật khẩu…');
 
   try{
     const buf = await selectedFile.arrayBuffer();
@@ -469,7 +846,6 @@ submitBtn.addEventListener('click', async () => {
       throw new Error('WRONG_PASSWORD');
     }
 
-    // Extract all keys and certs
     const keyBags = p12.getBags({bagType: forge.pki.oids.pkcs8ShroudedKeyBag});
     const keyBagsUnshrouded = p12.getBags({bagType: forge.pki.oids.keyBag});
     const certBags = p12.getBags({bagType: forge.pki.oids.certBag});
@@ -487,7 +863,6 @@ submitBtn.addEventListener('click', async () => {
       throw new Error('NO_KEY_OR_CERT');
     }
 
-    // Put the cert matching the private key first (typical convention)
     const newP12Asn1 = forge.pkcs12.toPkcs12Asn1(
       privateKey,
       certs,
@@ -508,18 +883,19 @@ submitBtn.addEventListener('click', async () => {
     dlBtn.href = url;
     dlBtn.download = 'cer_new.zip';
 
-    seal.classList.add('success');
-    showOk('Đã đổi mật khẩu thành công. File mới sẵn sàng để tải xuống bên dưới.');
-    resultEl.classList.add('show');
+    setDial('success', 'Hoàn tất');
+    burstParticles();
+    goToStep(3);
 
   }catch(err){
-    seal.classList.remove('success');
+    setDial('error', 'Không thành công');
+    setTimeout(()=> setDial('loaded', selectedFile.name), 900);
     if (err.message === 'WRONG_PASSWORD'){
-      showError('Không thể mở file. Vui lòng kiểm tra lại mật khẩu hiện tại.');
+      showError('Không thể mở tệp. Vui lòng kiểm tra lại mật khẩu hiện tại.');
     } else if (err.message === 'NO_KEY_OR_CERT'){
-      showError('File .p12 không hợp lệ hoặc thiếu khóa/chứng chỉ bên trong.');
+      showError('Tệp .p12 không hợp lệ hoặc thiếu khoá/chứng chỉ bên trong.');
     } else {
-      showError('Đã xảy ra lỗi khi xử lý file. Vui lòng kiểm tra lại file và mật khẩu.');
+      showError('Đã xảy ra lỗi khi xử lý tệp. Vui lòng kiểm tra lại tệp và mật khẩu.');
     }
   }finally{
     submitBtn.disabled = false;
